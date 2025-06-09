@@ -6,8 +6,8 @@
  
 -        if (getauxval(OSSL_HWCAP2) & OSSL_HWCAP2_SVE2)
 -            OPENSSL_armcap_P |= ARMV8_SVE2;
-+        // if (getauxval(OSSL_HWCAP2) & OSSL_HWCAP2_SVE2)
-+        //     OPENSSL_armcap_P |= ARMV8_SVE2;
++        if (getauxval(OSSL_HWCAP2) & OSSL_HWCAP2_SVE2)
++            OPENSSL_armcap_P |= ARMV8_SVE2;
  
          if (getauxval(OSSL_HWCAP2) & OSSL_HWCAP2_RNG)
              OPENSSL_armcap_P |= ARMV8_RNG;

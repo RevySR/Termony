@@ -18,7 +18,8 @@ PKGS=bash \
 	yyjson \
 	fastfetch \
 	sl \
-	openssh
+	openssh \
+	testhwcap
 STAMP=$(patsubst %,%/.stamp,$(PKGS))
 
 all: copy
