@@ -1,4 +1,4 @@
-name: Build HNP
+name: Build HAP
 
 on:
   push:
@@ -8,9 +8,14 @@ on:
     - cron: "0 2 * * *"
 
 env:
+  OHOS_ARCH: aarch64
+  OHOS_ABI: arm64-v8a
   OHOS_SDK_RELEASE_VERSION: "6.0.0.1"
   OHOS_SDK_VERSION: "6.0.0.48"
   OHOS_SDK_HOME: ${{ github.workspace }}/ohos-sdk/linux
+  ARKUIX_VERSION: 5.0.1.110
+  ARKUIX_HOME: ${{ github.workspace }}/arkui-x
+  WGET: "wget --retry-connrefused --read-timeout=20 --timeout=15"
 
 jobs:
   build-hnp:
@@ -73,10 +78,39 @@ jobs:
             done
           popd
 
+      - name: Cache ARKUIX
+        id: cache-arkuix # Assign an ID to this step to check its output later
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ARKUIX_HOME}}
+          key: ${{ runner.os }}-arkuix-${{ env.ARKUIX_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-arkuix-${{ env.ARKUIX_VERSION}}
+
+      - name: Download ARKUIX
+        if: steps.cache-arkuix.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          $WGET https://repo.huaweicloud.com/arkui-crossplatform/sdk/${ARKUIX_VERSION}/linux/arkui-x-linux-x64-${ARKUIX_VERSION}-Release.zip -c -O ${{ github.workspace }}/arkuix-sdk.zip
+          unzip -o arkuix-sdk.zip
+          pushd ${{ github.workspace }}/arkui-x
+              test -d licenses || mkdir licenses
+              cp ${{ github.workspace }}/.ci/arkuix/* licenses/
+          popd
+          echo "arkui-x.dir=${{ github.workspace }}/arkui-x" > ${{ github.workspace }}/local.properties
+
       - name: Build hnp
         shell: bash
         run: |
-          USE_CCACHE=1 OHOS_ARCH=aarch64 OHOS_ABI=arm64-v8a make -C build-hnp
+          USE_CCACHE=1 make -C build-hnp
+
+      - name: Build hap
+        shell: bash
+        run: |
+          hvigorw assembleHap
+          pushd ${{ github.workspace }}/entry
+              zip -r ../entry/build/default/outputs/default/entry-default-unsigned.hap hnp
+          popd
 
       - name: Upload hnp
         uses: actions/upload-artifact@v6
@@ -84,4 +118,12 @@ jobs:
           name: hnp
           path: |
             build-hnp/*.hnp
+          retention-days: 7
+
+      - name: Upload hap
+        uses: actions/upload-artifact@v6
+        with:
+          name: hap
+          path: |
+            entry/build/default/outputs/default/entry-default-unsigned.hap
           retention-days: 7
